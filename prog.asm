@@ -38,13 +38,13 @@
 ;sin: .db 50,79,98,98,79,50,21,2,2,21
 sin: .db 50, 51, 53, 53, 51, 50, 48, 47, 47, 48
 
-; 392 415 440 466 493 523 554 587 522 659 698 739 784 830 932 987 [Hz]
+; 392 415 440 466 493 523 554 587 622 659 698 739 784 830 932 987 [Hz]
 ;the following values are 10^6 / f
-notes: .dw 0x9f7, 0x969, 0x8e0, 0x861, 0x7ec, 0x778, 0x70d, 0x6a7, 0x77b, 0x5ed, 0x598, 0x549, 0x4fb, 0x4b4, 0x430, 0x3f5
+notes: .dw 0x9f7, 0x969, 0x8e0, 0x861, 0x7ec, 0x778, 0x70d, 0x6a7, 0x647, 0x5ed, 0x598, 0x549, 0x4fb, 0x4b4, 0x430, 0x3f5
 
 .cseg
 main:
-eint
+
 ; - - - - - - - - - Timer setup:
 
 ;set timer0 data:
@@ -82,18 +82,38 @@ out s0, gpio_b_dir
 ; - - - - - - - - - initialize sin_location
 load sin_location, 9
 
-load s0, 15
+
+load s2, 0xf0
+out s2, gpio_b_out
+
+eint
+
 
 mainloop:
 
 ; col
-load s2, 0b00010000
-load s5, 0
+load s2, 0b00001000
 load s6, 0
 columnloop:
 load s3, s2
 xor s3, 0xff
 out s3, gpio_b_out
+load s3, s3
+load s3, s3
+load s3, s3
+load s3, s3
+load s3, s3
+load s3, s3
+load s3, s3
+load s3, s3
+load s3, s3
+load s3, s3
+load s3, s3
+load s3, s3
+load s3, s3
+load s3, s3
+load s3, s3
+load s3, s3
 in s4, gpio_b_in
 xor s4, 0xff
 sr0 s4
@@ -103,47 +123,49 @@ sr0 s4
 ; row:
 load s7, 0b00001000
 rowloop:
-add s6, 1
 test s4, s7
 jump z, if_dont_set
 jump endloop
 if_dont_set:
+add s6, 1
 sr0 s7
 jump nz, rowloop
 
 sr0 s2
 jump nz, columnloop
 endloop:
+out currentNote, 0
 comp s6, 16
 jump z, if_not_pushed
-load s0, s6
-comp s0, currentNote
+load s8, s6
+comp s8, currentNote
 jump z, mainloop
-load currentNote, s0
+load currentNote, s8
 call setFrequency
 jump mainloop
 if_not_pushed:
+load currentNote, 16
 call switchOff
 
 jump mainloop
 
-;s0 must be filled with the number representing number of note. Number '16' in s0 denotes no note (no note is going to be played)
+;s8 must be filled with the number representing number of note. Number '16' in s8 denotes no note (no note is going to be played)
 setFrequency:
-sl1 s0
-add s0, notes
-fetch s1, s0
-out s1, ct_lbyte
-sub s0, 1
-fetch s1, s0
-out s1, ct_ocr1_h
+sl1 s8
+add s8, notes
+fetch s9, s8
+out s9, ct_lbyte
+sub s8, 1
+fetch s9, s8
+out s9, ct_ocr1_h
 ;set timer1 data:
-load s0, 0b00101000
-out s0, ct_config1
+load s8, 0b00101000
+out s8, ct_config1
 ret
 
 switchOff:
-load s0, 0
-out s0, ct_config1
+load s9, 0
+out s9, ct_config1
 ret
 
 serve_int:

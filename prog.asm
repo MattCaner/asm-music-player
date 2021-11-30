@@ -35,7 +35,9 @@
 .reg sE, currentNote
 
 .dseg
+;a very (like VERY) loud sinus:
 ;sin: .db 50,79,98,98,79,50,21,2,2,21
+;a silent sinus:
 sin: .db 50, 51, 53, 53, 51, 50, 48, 47, 47, 48
 
 ; 392 415 440 466 493 523 554 587 622 659 698 739 784 830 932 987 [Hz]
@@ -44,97 +46,76 @@ notes: .dw 0x9f7, 0x969, 0x8e0, 0x861, 0x7ec, 0x778, 0x70d, 0x6a7, 0x647, 0x5ed,
 
 .cseg
 main:
-
+; - - - - - - - - - - - - - - - - - - - - - - - - - SETUP:
 ; - - - - - - - - - Timer setup:
-
 ;set timer0 data:
 load s0, 0b00110000
 out s0, ct_config0
-
 ;set timer0 ocr:
 load s0, 100
 out s0, ct_lbyte
 load s0, 0
 out s0, ct_ocr0_h
-/;
-load s0, 75
-out s0, ct_lbyte
-load s0, 0
-out s0, ct_icr0_h
-;/
-
 ;enable interrupts from timer1 overflow:
 load s0, 0b00010000
 out s0, ct_int_mask
 load s0, 0b00100000
 out s0, int_mask
-
 load s0, 0b00001000
 out s0, gpio_d_dir
-
 load s0, 0b00001000
 out s0, gpio_d_out
-
 load s0, 0b00001111
 out s0, gpio_b_dir
-
-
 ; - - - - - - - - - initialize sin_location
 load sin_location, 9
-
-
-load s2, 0xf0
-out s2, gpio_b_out
-
+; - - - - - - - - - enable interrupts:
 eint
-
-
+; - - - - - - - - - - - - - - - - - - - - - - - - - GENERAL CODE LOOP:
 mainloop:
-
 ; col
 load s2, 0b00001000
 load s6, 0
 columnloop:
-load s3, s2
-xor s3, 0xff
-out s3, gpio_b_out
-load s3, s3
-load s3, s3
-load s3, s3
-load s3, s3
-load s3, s3
-load s3, s3
-load s3, s3
-load s3, s3
-load s3, s3
-load s3, s3
-load s3, s3
-load s3, s3
-load s3, s3
-load s3, s3
-load s3, s3
-load s3, s3
-in s4, gpio_b_in
-xor s4, 0xff
-sr0 s4
-sr0 s4
-sr0 s4
-sr0 s4
-; row:
-load s7, 0b00001000
-rowloop:
-test s4, s7
-jump z, if_dont_set
-jump endloop
-if_dont_set:
-add s6, 1
-sr0 s7
-jump nz, rowloop
-
-sr0 s2
-jump nz, columnloop
+		load s3, s2
+		xor s3, 0xff
+		out s3, gpio_b_out
+		;a small delay in order to allow the state to balance
+		load s3, s3
+		load s3, s3
+		load s3, s3
+		load s3, s3
+		load s3, s3
+		load s3, s3
+		load s3, s3
+		load s3, s3
+		load s3, s3
+		load s3, s3
+		load s3, s3
+		load s3, s3
+		load s3, s3
+		load s3, s3
+		load s3, s3
+		load s3, s3
+		in s4, gpio_b_in
+		xor s4, 0xff
+		sr0 s4
+		sr0 s4
+		sr0 s4
+		sr0 s4
+		; row:
+		load s7, 0b00001000
+		rowloop:
+				test s4, s7
+				jump z, if_dont_set
+				jump endloop
+				if_dont_set:
+				add s6, 1
+				sr0 s7
+				jump nz, rowloop
+		sr0 s2
+		jump nz, columnloop
 endloop:
-out currentNote, 0
 comp s6, 16
 jump z, if_not_pushed
 load s8, s6
@@ -146,8 +127,9 @@ jump mainloop
 if_not_pushed:
 load currentNote, 16
 call switchOff
-
 jump mainloop
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - FUNCTIONS:
 
 ;s8 must be filled with the number representing number of note. Number '16' in s8 denotes no note (no note is going to be played)
 setFrequency:
@@ -168,24 +150,19 @@ load s9, 0
 out s9, ct_config1
 ret
 
+; - - - - - - - - - - - serve interrupt
 serve_int:
 in s0, int_status
-;test s0, 0b00100000
-;jump z, serve_handleGPIO
 serve_handleTimer:
 fetch s0, sin_location
 load s1, 0
 out s0, ct_lbyte
 out s1, ct_icr0_h
-
 sub sin_location, 1
 ;was there an overflow, loop it back to high values
 jump nc, end_looping_location
 load sin_location, 9
 end_looping_location:
-
-serve_handleGPIO:
-;is there anything to do here?
 load s0, 0
 out s0, ct_status
 out s0, int_status

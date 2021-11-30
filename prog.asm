@@ -35,9 +35,8 @@
 .reg sE, currentNote
 
 .dseg
-sin: .db 50,79,98,98,79,50,21,2,2,21
-;sin: .db 21,2,2,21,79,98,98,79,50
-
+;sin: .db 50,79,98,98,79,50,21,2,2,21
+sin: .db 50, 51, 53, 53, 51, 50, 48, 47, 47, 48
 
 ; 392 415 440 466 493 523 554 587 522 659 698 739 784 830 932 987 [Hz]
 ;the following values are 10^6 / f
@@ -84,13 +83,11 @@ out s0, gpio_b_dir
 load sin_location, 9
 
 load s0, 15
-call setFrequency
-
 
 mainloop:
 
 ; col
-load s2, 0b00001000
+load s2, 0b00010000
 load s5, 0
 load s6, 0
 columnloop:
@@ -120,9 +117,13 @@ endloop:
 comp s6, 16
 jump z, if_not_pushed
 load s0, s6
+comp s0, currentNote
+jump z, mainloop
+load currentNote, s0
 call setFrequency
+jump mainloop
 if_not_pushed:
-
+call switchOff
 
 jump mainloop
 
@@ -135,11 +136,14 @@ out s1, ct_lbyte
 sub s0, 1
 fetch s1, s0
 out s1, ct_ocr1_h
-
 ;set timer1 data:
 load s0, 0b00101000
 out s0, ct_config1
+ret
 
+switchOff:
+load s0, 0
+out s0, ct_config1
 ret
 
 serve_int:
